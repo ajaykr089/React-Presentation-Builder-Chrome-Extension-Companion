@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presentation Builder</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="popup-container">
+    <div class="header">
+      <h1>📊 Presentation Builder</h1>
+      <p>Extract content and create slides instantly</p>
+    </div>
+
+    <div class="content">
+      <div class="action-buttons">
+        <button id="extract-page" class="primary-btn">
+          📄 Extract This Page
+        </button>
+
+        <button id="extract-youtube" class="secondary-btn">
+          🎥 YouTube to Slides
+        </button>
+
+        <button id="summarize-content" class="secondary-btn">
+          📝 Summarize & Create
+        </button>
+      </div>
+
+      <div class="status" id="status-message">
+        Ready to extract content...
+      </div>
+
+      <div class="settings">
+        <label>
+          <input type="checkbox" id="auto-open" checked>
+          Auto-open presentation builder
+        </label>
+      </div>
+    </div>
+
+    <div class="footer">
+      <a href="#" id="open-app">Open Presentation Builder →</a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
