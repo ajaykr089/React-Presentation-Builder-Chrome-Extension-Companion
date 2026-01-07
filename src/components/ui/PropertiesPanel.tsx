@@ -20,6 +20,10 @@ interface PropertiesPanelProps {
   selectedElement?: SlideElement
   onElementUpdate?: (element: SlideElement) => void
   onElementDelete?: (elementId: string) => void
+  onSlideTransitionUpdate?: (transition: any) => void
+  onSlideBackgroundUpdate?: (color: string) => void
+  currentSlideTransition?: any
+  currentSlideBackground?: string
   width?: number
 }
 
@@ -34,6 +38,10 @@ export function PropertiesPanel({
   selectedElement,
   onElementUpdate,
   onElementDelete,
+  onSlideTransitionUpdate,
+  onSlideBackgroundUpdate,
+  currentSlideTransition,
+  currentSlideBackground,
   width = 400
 }: PropertiesPanelProps) {
   return (
@@ -87,6 +95,122 @@ export function PropertiesPanel({
                 selectedTheme={selectedTheme}
                 onThemeSelect={onThemeSelect}
               />
+            )
+          },
+          {
+            key: 'slide-settings',
+            label: 'Slide Settings',
+            children: (
+              <div style={{ padding: '16px' }}>
+                <h3>Slide Transition</h3>
+                <p>Configure the transition effect that plays when moving to the next slide.</p>
+
+                <div style={{ marginTop: '16px' }}>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                      Transition Type
+                    </label>
+                    <select
+                      style={{
+                        width: '100%',
+                        padding: '6px',
+                        border: '1px solid #d9d9d9',
+                        borderRadius: '4px',
+                        fontSize: '14px'
+                      }}
+                      value={currentSlideTransition?.type || 'fade'}
+                      onChange={(e) => onSlideTransitionUpdate?.({
+                        ...currentSlideTransition,
+                        type: e.target.value
+                      })}
+                    >
+                      <option value="fade">Fade</option>
+                      <option value="slideLeft">Slide Left</option>
+                      <option value="slideRight">Slide Right</option>
+                      <option value="slideUp">Slide Up</option>
+                      <option value="slideDown">Slide Down</option>
+                      <option value="zoom">Zoom</option>
+                      <option value="rotate">Rotate</option>
+                    </select>
+                  </div>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                      Duration: {currentSlideTransition?.duration || 500}ms
+                    </label>
+                    <input
+                      type="range"
+                      min="200"
+                      max="2000"
+                      value={currentSlideTransition?.duration || 500}
+                      step="100"
+                      style={{ width: '100%' }}
+                      onChange={(e) => onSlideTransitionUpdate?.({
+                        ...currentSlideTransition,
+                        duration: parseInt(e.target.value)
+                      })}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                      Easing
+                    </label>
+                    <select
+                      style={{
+                        width: '100%',
+                        padding: '6px',
+                        border: '1px solid #d9d9d9',
+                        borderRadius: '4px',
+                        fontSize: '14px'
+                      }}
+                      value={currentSlideTransition?.easing || 'easeOut'}
+                      onChange={(e) => onSlideTransitionUpdate?.({
+                        ...currentSlideTransition,
+                        easing: e.target.value
+                      })}
+                    >
+                      <option value="linear">Linear</option>
+                      <option value="easeIn">Ease In</option>
+                      <option value="easeOut">Ease Out</option>
+                      <option value="easeInOut">Ease In Out</option>
+                    </select>
+                  </div>
+                </div>
+
+                <h3 style={{ marginTop: '24px' }}>Slide Background</h3>
+                <p>Customize the background for this slide.</p>
+
+                <div style={{ marginTop: '16px' }}>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                      Background Color
+                    </label>
+                    <input
+                      type="color"
+                      value={currentSlideBackground || '#ffffff'}
+                      style={{
+                        width: '100%',
+                        height: '40px',
+                        border: '1px solid #d9d9d9',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                      onChange={(e) => onSlideBackgroundUpdate?.(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )
+          },
+          {
+            key: 'animations',
+            label: 'Animations',
+            children: (
+              <div style={{ padding: '16px' }}>
+                <h3>Element Animations</h3>
+                <p>Select individual elements and use the Elements tab to add animations to them.</p>
+              </div>
             )
           },
           {

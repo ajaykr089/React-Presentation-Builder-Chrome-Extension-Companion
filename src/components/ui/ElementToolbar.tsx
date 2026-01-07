@@ -61,6 +61,7 @@ const elementTypes: Array<{
       y: 200,
       width: 150,
       height: 100,
+      shapeType: 'rectangle',
       style: {
         backgroundColor: '#1890ff',
         borderRadius: '4px'
@@ -77,7 +78,10 @@ const elementTypes: Array<{
       x: 250,
       y: 250,
       width: 100,
-      height: 4,
+      height: 20,
+      arrowType: 'straight',
+      direction: 'right',
+      arrowThickness: 4,
       style: {
         backgroundColor: '#000000'
       }
@@ -93,16 +97,7 @@ const elementTypes: Array<{
       x: 300,
       y: 100,
       width: 250,
-      height: 200,
-      style: {
-        backgroundColor: '#f5f5f5',
-        border: '2px dashed #ccc',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '14px',
-        color: '#999'
-      }
+      height: 200
     }
   },
   {
@@ -115,16 +110,7 @@ const elementTypes: Array<{
       x: 350,
       y: 150,
       width: 300,
-      height: 150,
-      style: {
-        backgroundColor: '#f5f5f5',
-        border: '2px dashed #ccc',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '14px',
-        color: '#999'
-      }
+      height: 150
     }
   },
   {
@@ -133,19 +119,11 @@ const elementTypes: Array<{
     icon: '💻',
     description: 'Add code snippets',
     defaultProps: {
-      content: 'console.log("Hello World");',
+      content: '',
       x: 400,
       y: 200,
       width: 250,
-      height: 100,
-      style: {
-        backgroundColor: '#f6f8fa',
-        border: '1px solid #e1e4e8',
-        fontFamily: 'monospace',
-        fontSize: '12px',
-        padding: '8px',
-        color: '#24292e'
-      }
+      height: 100
     }
   },
   {
@@ -192,15 +170,11 @@ const elementTypes: Array<{
       content: '⭐',
       x: 500,
       y: 100,
-      width: 50,
-      height: 50,
-      style: {
-        fontSize: '24px',
-        textAlign: 'center',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }
+      width: 80,
+      height: 80,
+      iconType: 'star',
+      iconColor: '#1890ff',
+      iconSize: 48
     }
   },
   {
@@ -212,12 +186,15 @@ const elementTypes: Array<{
       content: 'Click here',
       x: 550,
       y: 150,
-      width: 100,
-      height: 30,
+      width: 120,
+      height: 40,
+      href: 'https://example.com',
+      openInNewTab: false,
       style: {
         color: '#1890ff',
         textDecoration: 'underline',
-        cursor: 'pointer'
+        cursor: 'pointer',
+        fontSize: '16px'
       }
     }
   },
@@ -285,28 +262,7 @@ const elementTypes: Array<{
       }
     }
   },
-  {
-    type: 'form',
-    name: 'Form',
-    icon: '📝',
-    description: 'Add interactive forms',
-    defaultProps: {
-      content: 'Form Placeholder',
-      x: 750,
-      y: 150,
-      width: 250,
-      height: 150,
-      style: {
-        backgroundColor: '#f9f9f9',
-        border: '1px solid #e1e4e8',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '14px',
-        color: '#666'
-      }
-    }
-  },
+
   {
     type: 'draw',
     name: 'Draw',
@@ -340,7 +296,15 @@ export function ElementToolbar({ onElementAdd }: ElementToolbarProps) {
       y: elementType.defaultProps.y || 100,
       width: elementType.defaultProps.width || 150,
       height: elementType.defaultProps.height || 100,
-      style: elementType.defaultProps.style || {}
+      style: elementType.defaultProps.style || {},
+      // Include specific properties
+      shapeType: elementType.defaultProps.shapeType,
+      arrowType: elementType.defaultProps.arrowType,
+      direction: elementType.defaultProps.direction,
+      arrowThickness: elementType.defaultProps.arrowThickness,
+      language: elementType.defaultProps.language,
+      codeTheme: elementType.defaultProps.codeTheme,
+      chartType: elementType.defaultProps.chartType
     }
     onElementAdd(newElement)
   }

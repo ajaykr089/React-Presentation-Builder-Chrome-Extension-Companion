@@ -33,6 +33,34 @@ export interface SlideElement {
   rows?: number // for tables
   cols?: number // for tables
   data?: any // for charts/forms
+  // Shape and arrow specific properties
+  shapeType?: 'rectangle' | 'circle' | 'triangle' | 'diamond' | 'hexagon' | 'star'
+  arrowType?: 'straight' | 'curved' | 'double' | 'dashed' | 'thick'
+  direction?: 'right' | 'left' | 'up' | 'down'
+  arrowThickness?: number
+  language?: string
+  codeTheme?: 'light' | 'dark'
+  chartType?: 'bar' | 'line' | 'pie' | 'doughnut'
+  // Icon specific properties
+  iconType?: string
+  iconColor?: string
+  iconSize?: number
+  // Link specific properties
+  openInNewTab?: boolean
+  // Video specific properties
+  autoplay?: boolean
+  controls?: boolean
+  loop?: boolean
+  muted?: boolean
+  volume?: number
+  // Animation properties
+  animation?: {
+    type: 'fadeIn' | 'slideIn' | 'bounce' | 'scale' | 'rotate'
+    duration: number
+    delay: number
+    easing: 'linear' | 'easeIn' | 'easeOut' | 'easeInOut'
+    direction?: 'left' | 'right' | 'top' | 'bottom'
+  }
 }
 
 export interface Slide {
@@ -41,6 +69,11 @@ export interface Slide {
   backgroundColor?: string
   backgroundImage?: string
   layout: string
+  transition?: {
+    type: 'fade' | 'slideLeft' | 'slideRight' | 'slideUp' | 'slideDown' | 'zoom' | 'rotate'
+    duration: number
+    easing: 'linear' | 'easeIn' | 'easeOut' | 'easeInOut'
+  }
 }
 
 export interface Presentation {

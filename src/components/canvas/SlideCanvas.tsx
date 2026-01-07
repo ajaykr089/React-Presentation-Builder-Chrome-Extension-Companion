@@ -3,6 +3,20 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { Card, Typography } from 'antd'
 import { SlideElement, SlideTemplate, Theme } from '@/types/presentation'
+import { RichTextEditor } from '@/components/elements/RichTextEditor'
+import { ChartElement } from '@/components/elements/ChartElement'
+import { TableElement } from '@/components/elements/TableElement'
+import { CodeElement } from '@/components/elements/CodeElement'
+import { ShapeRenderer } from '@/components/elements/ShapeRenderer'
+import { ArrowRenderer } from '@/components/elements/ArrowRenderer'
+import { QuoteElement } from '@/components/elements/QuoteElement'
+import { IconElement } from '@/components/elements/IconElement'
+import { LinkElement } from '@/components/elements/LinkElement'
+import { VideoElement } from '@/components/elements/VideoElement'
+import { AudioElement } from '@/components/elements/AudioElement'
+import { DiagramElement } from '@/components/elements/DiagramElement'
+import { DrawElement } from '@/components/elements/DrawElement'
+import { applyAnimationToElement, generateAnimationCSS } from '@/lib/animations'
 import { v4 as uuidv4 } from 'uuid'
 
 const { Title, Paragraph } = Typography
@@ -16,6 +30,7 @@ interface SlideCanvasProps {
   elements?: SlideElement[]
   onElementsChange?: (elements: SlideElement[]) => void
   onElementSelect?: (element: SlideElement | undefined) => void
+  readOnly?: boolean
 }
 
 const CANVAS_WIDTH = 800
@@ -29,7 +44,8 @@ export function SlideCanvas({
   theme,
   elements: externalElements = [],
   onElementsChange,
-  onElementSelect
+  onElementSelect,
+  readOnly = false
 }: SlideCanvasProps) {
   // Use external elements (required now)
   const displayElements = externalElements
@@ -50,6 +66,30 @@ export function SlideCanvas({
       }
     }
   }, [selectedElement, displayElements, onElementSelect])
+
+  // Keyboard delete functionality
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only handle keyboard events in editor mode (not readOnly)
+      if (readOnly) return
+
+      if ((event.key === 'Delete' || event.key === 'Backspace') && selectedElement) {
+        event.preventDefault()
+        // Find the onElementDelete handler - we need to pass it from props
+        // For now, we'll call the parent's onElementsChange to remove the element
+        const updatedElements = displayElements.filter(el => el.id !== selectedElement)
+        onElementsChange?.(updatedElements)
+        setSelectedElement(null) // Clear selection after deletion
+      }
+    }
+
+    // Add event listener to window to capture keyboard events
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [readOnly, selectedElement, displayElements, onElementsChange])
 
   const handleElementClick = useCallback((elementId: string, event: React.MouseEvent) => {
     event.stopPropagation()
@@ -136,33 +176,64 @@ export function SlideCanvas({
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
-          {displayElements.map((element) => (
-            <div
-              key={element.id}
-              className={`slide-element ${selectedElement === element.id ? 'selected' : ''}`}
-              style={{
-                left: element.x,
-                top: element.y,
-                width: element.width,
-                height: element.height,
-                position: 'absolute',
-                ...element.style
-              }}
-              onClick={(e) => handleElementClick(element.id, e)}
-              onMouseDown={(e) => handleMouseDown(element.id, e)}
-            >
+          {displayElements.map((element) => {
+            // Apply animation to element if it has animation properties
+            // Show animations in both editor and preview modes
+            const animatedElement = element.animation
+              ? applyAnimationToElement(element, {
+                  id: `anim-${element.id}`,
+                  elementId: element.id,
+                  type: element.animation.type,
+                  duration: element.animation.duration,
+                  delay: element.animation.delay,
+                  easing: element.animation.easing,
+                  direction: element.animation.direction
+                })
+              : element
+
+            return (
+              <div
+                key={element.id}
+                className={`slide-element ${!readOnly && selectedElement === element.id ? 'selected' : ''}`}
+                style={{
+                  left: animatedElement.x,
+                  top: animatedElement.y,
+                  width: animatedElement.width,
+                  height: animatedElement.height,
+                  position: 'absolute',
+                  // For shapes and arrows, don't apply any styling to container - only to SVG content
+                  ...(element.type === 'shape' || element.type === 'arrow' ? {} : animatedElement.style)
+                }}
+                onClick={!readOnly ? (e) => {
+                  // Chart and audio elements handle their own clicks for selection
+                  if (element.type !== 'chart' && element.type !== 'audio') {
+                    handleElementClick(element.id, e)
+                  }
+                } : undefined}
+                onMouseDown={!readOnly ? (e) => handleMouseDown(element.id, e) : undefined}
+              >
               {element.type === 'text' && (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {element.content}
-                </div>
+                <RichTextEditor
+                  value={element.content || ''}
+                  onChange={(value) => {
+                    const updatedElements = displayElements.map(el =>
+                      el.id === element.id ? { ...el, content: value } : el
+                    )
+                    onElementsChange?.(updatedElements)
+                  }}
+                  readOnly={selectedElement !== element.id}
+                  placeholder="Click to edit text"
+                />
               )}
               {element.type === 'shape' && (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: element.style?.backgroundColor || '#1890ff',
-                  borderRadius: element.style?.borderRadius || '0px'
-                }} />
+                <ShapeRenderer
+                  shapeType={(element as any).shapeType || 'rectangle'}
+                  backgroundColor={element.style?.backgroundColor || '#1890ff'}
+                  borderColor={element.style?.borderColor || '#000000'}
+                  borderWidth={String(element.style?.borderWidth || '0px')}
+                  width="100%"
+                  height="100%"
+                />
               )}
               {element.type === 'image' && (
                 <img
@@ -181,74 +252,75 @@ export function SlideCanvas({
                 />
               )}
               {element.type === 'arrow' && (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: element.style?.backgroundColor || '#000000',
-                  clipPath: 'polygon(0% 50%, 85% 0%, 85% 35%, 100% 50%, 85% 65%, 85% 100%)',
-                }} />
+                <ArrowRenderer
+                  arrowType={(element as any).arrowType || 'straight'}
+                  direction={(element as any).direction || 'right'}
+                  color={element.style?.backgroundColor || '#000000'}
+                  thickness={(element as any).arrowThickness || 4}
+                  width="100%"
+                  height="100%"
+                />
               )}
               {element.type === 'chart' && (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: element.style?.backgroundColor || '#f5f5f5',
-                  border: element.style?.border || '2px dashed #ccc',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: element.style?.fontSize || '14px',
-                  color: element.style?.color || '#999'
-                }}>
-                  📊
-                </div>
+                <ChartElement
+                  data={element.data}
+                  type={(element as any).chartType || 'bar'}
+                  onDataChange={(data, type) => {
+                    const updatedElements = displayElements.map(el =>
+                      el.id === element.id
+                        ? { ...el, data, chartType: type } as any
+                        : el
+                    )
+                    onElementsChange?.(updatedElements)
+                  }}
+                  width={element.width}
+                  height={element.height}
+                  isDragging={selectedElement === element.id && isDragging}
+                  isSelected={selectedElement === element.id}
+                  onSelect={() => handleElementClick(element.id, {} as React.MouseEvent)}
+                />
               )}
               {element.type === 'table' && (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: element.style?.backgroundColor || '#f5f5f5',
-                  border: element.style?.border || '2px dashed #ccc',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: element.style?.fontSize || '14px',
-                  color: element.style?.color || '#999'
-                }}>
-                  📋
-                </div>
+                <TableElement
+                  data={element.data}
+                  onDataChange={(data) => {
+                    const updatedElements = displayElements.map(el =>
+                      el.id === element.id ? { ...el, data } : el
+                    )
+                    onElementsChange?.(updatedElements)
+                  }}
+                  width={element.width}
+                  height={element.height}
+                />
               )}
               {element.type === 'code' && (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: element.style?.backgroundColor || '#f6f8fa',
-                  border: element.style?.border || '1px solid #e1e4e8',
-                  fontFamily: element.style?.fontFamily || 'monospace',
-                  fontSize: element.style?.fontSize || '12px',
-                  padding: element.style?.padding || '8px',
-                  color: element.style?.color || '#24292e',
-                  whiteSpace: 'pre-wrap',
-                  overflow: 'auto'
-                }}>
-                  {element.content || 'console.log("Hello World");'}
-                </div>
+                <CodeElement
+                  content={element.content}
+                  language={(element as any).language || 'javascript'}
+                  theme={(element as any).codeTheme || 'dark'}
+                  onContentChange={(content, language, theme) => {
+                    const updatedElements = displayElements.map(el =>
+                      el.id === element.id
+                        ? { ...el, content, language, codeTheme: theme } as any
+                        : el
+                    )
+                    onElementsChange?.(updatedElements)
+                  }}
+                  width={element.width}
+                  height={element.height}
+                />
               )}
               {element.type === 'quote' && (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: element.style?.fontSize || '18px',
-                  fontStyle: element.style?.fontStyle || 'italic',
-                  color: element.style?.color || '#666666',
-                  textAlign: element.style?.textAlign || 'center',
-                  padding: '16px'
-                }}>
-                  "{element.content || 'This is a quote'}"
-                </div>
+                <QuoteElement
+                  content={element.content}
+                  onContentChange={(content) => {
+                    const updatedElements = displayElements.map(el =>
+                      el.id === element.id ? { ...el, content } : el
+                    )
+                    onElementsChange?.(updatedElements)
+                  }}
+                  style={element.style}
+                />
               )}
               {element.type === 'divider' && (
                 <div style={{
@@ -261,107 +333,103 @@ export function SlideCanvas({
                 }} />
               )}
               {element.type === 'icon' && (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: element.style?.fontSize || '24px'
-                }}>
-                  {element.content || '⭐'}
-                </div>
+                <IconElement
+                  icon={(element as any).iconType || 'star'}
+                  color={(element as any).iconColor || '#1890ff'}
+                  size={(element as any).iconSize || 48}
+                  onIconChange={(icon, color, size) => {
+                    const updatedElements = displayElements.map(el =>
+                      el.id === element.id
+                        ? { ...el, iconType: icon, iconColor: color, iconSize: size } as any
+                        : el
+                    )
+                    onElementsChange?.(updatedElements)
+                  }}
+                />
               )}
               {element.type === 'link' && (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: element.style?.color || '#1890ff',
-                  textDecoration: element.style?.textDecoration || 'underline',
-                  cursor: 'pointer',
-                  fontSize: element.style?.fontSize || '16px'
-                }}>
-                  {element.content || 'Click here'}
-                </div>
+                <LinkElement
+                  content={element.content}
+                  href={(element as any).href}
+                  openInNewTab={(element as any).openInNewTab}
+                  onLinkChange={(content, href, openInNewTab) => {
+                    const updatedElements = displayElements.map(el =>
+                      el.id === element.id
+                        ? { ...el, content, href, openInNewTab } as any
+                        : el
+                    )
+                    onElementsChange?.(updatedElements)
+                  }}
+                  style={element.style}
+                />
               )}
               {element.type === 'video' && (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: element.style?.backgroundColor || '#000000',
-                  color: element.style?.color || '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: element.style?.fontSize || '14px'
-                }}>
-                  🎥
-                </div>
+                <VideoElement
+                  src={element.content}
+                  autoplay={(element as any).autoplay}
+                  controls={(element as any).controls}
+                  loop={(element as any).loop}
+                  muted={(element as any).muted}
+                  volume={(element as any).volume}
+                  onVideoChange={(src, autoplay, controls, loop, muted, volume) => {
+                    const updatedElements = displayElements.map(el =>
+                      el.id === element.id
+                        ? { ...el, content: src, autoplay, controls, loop, muted, volume } as any
+                        : el
+                    )
+                    onElementsChange?.(updatedElements)
+                  }}
+                  style={element.style}
+                />
               )}
               {element.type === 'audio' && (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: element.style?.backgroundColor || '#f0f0f0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: element.style?.fontSize || '12px',
-                  color: element.style?.color || '#666'
-                }}>
-                  🎵
-                </div>
+                <AudioElement
+                  src={element.content}
+                  autoplay={(element as any).autoplay}
+                  controls={(element as any).controls}
+                  loop={(element as any).loop}
+                  muted={(element as any).muted}
+                  volume={(element as any).volume}
+                  onAudioChange={(src, autoplay, controls, loop, muted, volume) => {
+                    const updatedElements = displayElements.map(el =>
+                      el.id === element.id
+                        ? { ...el, content: src, autoplay, controls, loop, muted, volume } as any
+                        : el
+                    )
+                    onElementsChange?.(updatedElements)
+                  }}
+                  style={element.style}
+                  isSelected={selectedElement === element.id}
+                  onSelect={() => handleElementClick(element.id, {} as React.MouseEvent)}
+                />
               )}
               {element.type === 'diagram' && (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: element.style?.backgroundColor || '#f5f5f5',
-                  border: element.style?.border || '2px dashed #ccc',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: element.style?.fontSize || '14px',
-                  color: element.style?.color || '#999'
-                }}>
-                  🔄
-                </div>
+                <DiagramElement
+                  data={element.data}
+                  onDiagramChange={(data) => {
+                    const updatedElements = displayElements.map(el =>
+                      el.id === element.id ? { ...el, data } : el
+                    )
+                    onElementsChange?.(updatedElements)
+                  }}
+                  style={element.style}
+                />
               )}
-              {element.type === 'form' && (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: element.style?.backgroundColor || '#f9f9f9',
-                  border: element.style?.border || '1px solid #e1e4e8',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: element.style?.fontSize || '14px',
-                  color: element.style?.color || '#666'
-                }}>
-                  📝
-                </div>
-              )}
+
               {element.type === 'draw' && (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: element.style?.backgroundColor || '#ffffff',
-                  border: element.style?.border || '2px solid #cccccc',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: element.style?.fontSize || '14px',
-                  color: element.style?.color || '#999'
-                }}>
-                  ✏️
-                </div>
+                <DrawElement
+                  data={element.data}
+                  onDrawChange={(data) => {
+                    const updatedElements = displayElements.map(el =>
+                      el.id === element.id ? { ...el, data } : el
+                    )
+                    onElementsChange?.(updatedElements)
+                  }}
+                  style={element.style}
+                />
               )}
             </div>
-          ))}
+          )})}
         </div>
       </Card>
     </div>

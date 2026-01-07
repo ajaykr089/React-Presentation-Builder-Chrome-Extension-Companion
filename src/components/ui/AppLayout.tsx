@@ -6,7 +6,9 @@ import {
   PlayCircleOutlined,
   ExportOutlined,
   SettingOutlined,
-  PlusOutlined
+  PlusOutlined,
+  LeftOutlined,
+  RightOutlined
 } from '@ant-design/icons'
 import { useState } from 'react'
 
@@ -19,6 +21,11 @@ interface AppLayoutProps {
   onPreview?: () => void
   onExport?: () => void
   onSettings?: () => void
+  onAddSlide?: () => void
+  onNextSlide?: () => void
+  onPrevSlide?: () => void
+  currentSlideIndex?: number
+  totalSlides?: number
 }
 
 export function AppLayout({
@@ -27,7 +34,12 @@ export function AppLayout({
   onNewPresentation,
   onPreview,
   onExport,
-  onSettings
+  onSettings,
+  onAddSlide,
+  onNextSlide,
+  onPrevSlide,
+  currentSlideIndex = 0,
+  totalSlides = 1
 }: AppLayoutProps) {
   const [collapsed, setCollapsed] = useState(false)
 
@@ -89,10 +101,38 @@ export function AppLayout({
           Presentation Builder
         </div>
         <Space>
-          <Button type="primary" icon={<PlusOutlined />}>
+          <span style={{ color: 'white', fontSize: '14px' }}>
+            Slide {currentSlideIndex + 1} of {totalSlides}
+          </span>
+          <Button
+            icon={<LeftOutlined />}
+            onClick={onPrevSlide}
+            disabled={currentSlideIndex === 0}
+            style={{ color: 'white' }}
+          />
+          <Button
+            icon={<RightOutlined />}
+            onClick={onNextSlide}
+            disabled={currentSlideIndex === totalSlides - 1}
+            style={{ color: 'white' }}
+          />
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={onAddSlide}
+          >
             New Slide
           </Button>
-          <Button icon={<ExportOutlined />}>
+          <Button
+            icon={<PlayCircleOutlined />}
+            onClick={onPreview}
+          >
+            Preview
+          </Button>
+          <Button
+            icon={<ExportOutlined />}
+            onClick={onExport}
+          >
             Export
           </Button>
           <Button
