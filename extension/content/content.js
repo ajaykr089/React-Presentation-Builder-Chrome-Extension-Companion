@@ -12,26 +12,18 @@
       this.extractedContent = null;
     }
 
-    // Main extraction method with comprehensive content analysis
+    // Main extraction method - outputs clean structured JSON for AI processing
     extract() {
       try {
         const content = {
+          pageTitle: this.getCleanTitle(),
+          headings: this.getCleanHeadings(),
+          paragraphs: this.getCleanParagraphs(),
+          lists: this.getCleanLists(),
+          tables: this.getCleanTables(),
+          images: this.getCleanImages(),
+          sections: this.getSectionsGroupedByHeadings(),
           url: window.location.href,
-          title: this.getTitle(),
-          description: this.getMetaDescription(),
-          author: this.getAuthor(),
-          publishedDate: this.getPublishedDate(),
-          headings: this.getHeadings(),
-          paragraphs: this.getParagraphs(),
-          lists: this.getLists(),
-          quotes: this.getQuotes(),
-          links: this.getImportantLinks(),
-          images: this.getImages(),
-          codeBlocks: this.getCodeBlocks(),
-          tables: this.getTables(),
-          keyInsights: this.extractKeyInsights(),
-          readingTime: this.calculateReadingTime(),
-          contentType: this.detectContentType(),
           timestamp: new Date().toISOString(),
           type: 'webpage'
         };
@@ -41,8 +33,8 @@
       } catch (error) {
         console.error('Content extraction error:', error);
         return {
+          pageTitle: document.title || 'Untitled Page',
           url: window.location.href,
-          title: document.title || 'Untitled',
           error: error.message,
           timestamp: new Date().toISOString(),
           type: 'webpage'
@@ -926,6 +918,397 @@
 
       return content.slice(0, 3).join('\n\n'); // Limit content length
     }
+
+    // ===== NEW CLEAN EXTRACTION METHODS =====
+
+    // Clean title extraction
+    getCleanTitle() {
+      const title = this.getTitle();
+      return title.length > 100 ? title.substring(0, 100) + '...' : title;
+    }
+
+    // Clean headings extraction (H1-H4 only)
+    getCleanHeadings() {
+      const headings = [];
+      const selectors = ['h1', 'h2', 'h3', 'h4'];
+
+      selectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach((element) => {
+          const text = element.textContent?.trim();
+          if (text && text.length > 0 && text.length < 200 && !this.isNavigationHeading(text)) {
+            headings.push({
+              level: parseInt(selector.charAt(1)),
+              text: text
+            });
+          }
+        });
+      });
+
+      return headings.slice(0, 20); // Limit headings
+    }
+
+    // Check if heading looks like navigation
+    isNavigationHeading(text) {
+      const navPatterns = [
+        /menu/i, /navigation/i, /home/i, /about/i, /contact/i,
+        /privacy/i, /terms/i, /login/i, /signup/i, /search/i,
+        /breadcrumb/i, /footer/i, /sidebar/i
+      ];
+      return navPatterns.some(pattern => pattern.test(text)) && text.length < 50;
+    }
+
+    // Clean paragraphs extraction
+    getCleanParagraphs() {
+      const paragraphs = [];
+
+      // Focus on main content areas
+      const contentSelectors = [
+        'main p', 'article p', '[role="main"] p',
+        '.content p', '.post-content p', '.entry-content p',
+        '.article-body p', '.post p', '.text p', '.body p'
+      ];
+
+      const processedElements = new Set();
+
+      contentSelectors.forEach(selector => {
+        try {
+          const elements = document.querySelectorAll(selector);
+          elements.forEach(element => {
+            if (!processedElements.has(element)) {
+              processedElements.add(element);
+              const text = element.textContent?.trim();
+              if (text && text.length > 30 && text.length < 2000 && !this.isBoilerplateContent(text)) {
+                paragraphs.push(text);
+              }
+            }
+          });
+        } catch (e) {
+          // Skip invalid selectors
+        }
+      });
+
+      // Fallback to general paragraphs if we don't have enough content
+      if (paragraphs.length < 5) {
+        const generalParas = document.querySelectorAll('p');
+        generalParas.forEach(element => {
+          if (!processedElements.has(element)) {
+            const text = element.textContent?.trim();
+            if (text && text.length > 30 && text.length < 2000 && !this.isBoilerplateContent(text)) {
+              paragraphs.push(text);
+            }
+          }
+        });
+      }
+
+      return paragraphs.slice(0, 30); // Limit paragraphs
+    }
+
+    // Check if content is boilerplate
+    isBoilerplateContent(text) {
+      const boilerplatePatterns = [
+        /© \d{4}/, /all rights reserved/i, /terms of service/i,
+        /privacy policy/i, /cookie policy/i, /sign up for/i,
+        /subscribe to/i, /follow us on/i, /share this/i,
+        /related articles/i, /advertisement/i, /sponsored content/i,
+        /newsletter/i, /email/i, /contact us/i
+      ];
+
+      return boilerplatePatterns.some(pattern => pattern.test(text)) && text.length < 200;
+    }
+
+    // Clean lists extraction
+    getCleanLists() {
+      const lists = [];
+      const listElements = document.querySelectorAll('ul, ol');
+
+      listElements.forEach(listElement => {
+        const items = Array.from(listElement.querySelectorAll('li'))
+          .map(li => li.textContent?.trim())
+          .filter(text => text && text.length > 0 && text.length < 300)
+          .slice(0, 10); // Limit items per list
+
+        if (items.length >= 2 && items.length <= 15) {
+          lists.push({
+            type: listElement.tagName.toLowerCase(),
+            items: items
+          });
+        }
+      });
+
+      return lists.slice(0, 10); // Limit total lists
+    }
+
+    // Clean tables extraction
+    getCleanTables() {
+      const tables = [];
+      const tableElements = document.querySelectorAll('table');
+
+      tableElements.forEach(table => {
+        try {
+          const headers = Array.from(table.querySelectorAll('th'))
+            .map(th => th.textContent?.trim())
+            .filter(text => text && text.length > 0)
+            .slice(0, 6); // Limit headers
+
+          const rows = Array.from(table.querySelectorAll('tr'))
+            .slice(headers.length > 0 ? 1 : 0) // Skip header row if headers exist
+            .map(tr => Array.from(tr.querySelectorAll('td, th'))
+              .map(cell => cell.textContent?.trim() || '')
+              .slice(0, 6)) // Limit columns
+            .filter(row => row.some(cell => cell.length > 0))
+            .slice(0, 10); // Limit rows
+
+          if (rows.length >= 1 && rows.length <= 20) {
+            tables.push({
+              headers: headers,
+              rows: rows
+            });
+          }
+        } catch (error) {
+          // Skip problematic tables
+        }
+      });
+
+      return tables.slice(0, 5); // Limit tables
+    }
+
+    // Clean images extraction (alt + src only)
+    getCleanImages() {
+      const images = [];
+      const imgElements = document.querySelectorAll('img');
+
+      imgElements.forEach(img => {
+        if (img.naturalWidth > 100 && img.naturalHeight > 100 &&
+            !this.isIconImage(img) && img.src) {
+
+          const alt = img.alt?.trim() || '';
+          const src = img.src;
+
+          // Only include if we have meaningful alt text or substantial image
+          if ((alt.length > 0 && alt.length < 200) || (img.naturalWidth > 300 && img.naturalHeight > 200)) {
+            images.push({
+              alt: alt,
+              src: src
+            });
+          }
+        }
+      });
+
+      return images.slice(0, 10); // Limit images
+    }
+
+    // Sections grouped by nearest heading - proper DOM traversal
+    getSectionsGroupedByHeadings() {
+      const sections = []
+      const allHeadings = document.querySelectorAll('h1, h2, h3, h4')
+      const assignedImages = new Set() // Track which images have been assigned to prevent duplicates
+
+      allHeadings.forEach((headingElement, index) => {
+        const headingText = headingElement.textContent?.trim()
+        if (!headingText || headingText.length < 3 || this.isNavigationHeading(headingText)) {
+          return // Skip invalid or navigation headings
+        }
+
+        const section = {
+          heading: headingText,
+          images: [],
+          content: []
+        }
+
+        // Start from the heading and collect content until next heading
+        let currentElement = headingElement.nextElementSibling
+        let contentCount = 0
+        const maxContent = 5 // Limit content per section
+
+        while (currentElement && contentCount < maxContent) {
+          // Stop if we hit another heading
+          if (currentElement.tagName?.match(/^H[1-6]$/)) {
+            break
+          }
+
+          // Extract images
+          if (currentElement.tagName === 'IMG') {
+            const img = currentElement
+            if (img.naturalWidth > 100 && img.naturalHeight > 100 && !this.isIconImage(img) && !assignedImages.has(img.src)) {
+              const alt = img.alt?.trim() || ''
+              const src = img.src
+              if ((alt.length > 0 && alt.length < 200) || (img.naturalWidth > 300 && img.naturalHeight > 200)) {
+                section.images.push({
+                  alt: alt,
+                  src: src
+                })
+                assignedImages.add(img.src) // Mark as assigned
+              }
+            }
+          }
+          // Extract paragraphs and text content
+          else if (currentElement.tagName === 'P') {
+            const text = currentElement.textContent?.trim()
+            if (text && text.length > 30 && !this.isBoilerplateContent(text)) {
+              section.content.push(text)
+              contentCount++
+            }
+          }
+          // Extract content from divs and other containers
+          else if (currentElement.tagName === 'DIV' || currentElement.tagName === 'SECTION' || currentElement.tagName === 'ARTICLE') {
+            // Look for paragraphs inside containers
+            const paragraphs = currentElement.querySelectorAll('p')
+            paragraphs.forEach(p => {
+              const text = p.textContent?.trim()
+              if (text && text.length > 30 && !this.isBoilerplateContent(text) && contentCount < maxContent) {
+                section.content.push(text)
+                contentCount++
+              }
+            })
+
+            // Look for images in containers
+            const images = currentElement.querySelectorAll('img')
+            images.forEach(img => {
+              if (img.naturalWidth > 100 && img.naturalHeight > 100 && !this.isIconImage(img) && !assignedImages.has(img.src)) {
+                const alt = img.alt?.trim() || ''
+                const src = img.src
+                if ((alt.length > 0 && alt.length < 200) || (img.naturalWidth > 300 && img.naturalHeight > 200)) {
+                  section.images.push({
+                    alt: alt,
+                    src: src
+                  })
+                  assignedImages.add(img.src) // Mark as assigned
+                }
+              }
+            })
+          }
+          // Extract list content
+          else if (currentElement.tagName === 'UL' || currentElement.tagName === 'OL') {
+            const listItems = currentElement.querySelectorAll('li')
+            const items = Array.from(listItems)
+              .map(li => li.textContent?.trim())
+              .filter(text => text && text.length > 0 && text.length < 300)
+              .slice(0, 5) // Limit list items
+
+            if (items.length >= 2) {
+              const listText = items.map(item => `• ${item}`).join('\n')
+              section.content.push(listText)
+              contentCount++
+            }
+          }
+
+          currentElement = currentElement.nextElementSibling
+        }
+
+        // If no images found in section, try to match ONE specific image by alt text
+        if (section.images.length === 0) {
+          const allImages = this.getCleanImages()
+
+          // Match numbered headings to their corresponding images
+          if (headingText.match(/^\d+\./)) {
+            const libraryName = headingText.split('.')[1]?.trim().toLowerCase()
+
+            if (libraryName) {
+              // Look for images not already assigned
+              const matchingImage = allImages.find(img => {
+                if (assignedImages.has(img.src)) return false // Skip already assigned
+
+                const altLower = img.alt.toLowerCase()
+
+                // Try multiple matching strategies
+                const strategies = [
+                  // Exact library name match
+                  () => altLower.includes(libraryName),
+                  // Library name with spaces (e.g., "tailwind css" for "tailwindcss")
+                  () => altLower.includes(libraryName.replace(/css$/, ' css')),
+                  // Just the first part of the name (e.g., "tailwind" for "tailwindcss")
+                  () => altLower.includes(libraryName.split(' ')[0]) ||
+                        altLower.includes(libraryName.split(/[-_]/)[0]),
+                  // Handle common variations
+                  () => {
+                    const commonMappings = {
+                      'tailwindcss': ['tailwind', 'tailwind css'],
+                      'mui': ['mui', 'material ui', 'material-ui'],
+                      'chakra ui': ['chakra', 'chakra ui', 'chakra-ui'],
+                      'ant design': ['ant', 'antd', 'ant design'],
+                      'react suite': ['react suite', 'rsuite'],
+                      'react bootstrap': ['react bootstrap', 'react-bootstrap'],
+                      'semantic ui': ['semantic', 'semantic ui'],
+                      'mantine': ['mantine'],
+                      'blueprint': ['blueprint', 'palantir'],
+                      'nextui': ['next ui', 'nextui'],
+                      'primereact': ['prime', 'primereact', 'prime react'],
+                      'grommet': ['grommet'],
+                      'onsen ui': ['onsen', 'onsen ui']
+                    }
+
+                    const variations = commonMappings[libraryName] || [libraryName]
+                    return variations.some(variation => altLower.includes(variation))
+                  }
+                ]
+
+                return strategies.some(strategy =>
+                  strategy() &&
+                  altLower.includes('react') &&
+                  altLower.includes('ui') &&
+                  !altLower.includes('job') &&
+                  !altLower.includes('newsletter')
+                )
+              })
+
+              if (matchingImage) {
+                section.images.push(matchingImage)
+                assignedImages.add(matchingImage.src) // Mark as assigned
+              }
+            }
+          }
+        }
+
+        // Only add section if it has meaningful content
+        if (section.content.length > 0) {
+          sections.push(section)
+        }
+      })
+
+      return sections.slice(0, 15) // Limit to 15 sections
+    }
+
+    // Find heading element by heading object and index
+    findHeadingElement(heading, index) {
+      const selector = `h${heading.level}`;
+      const elements = document.querySelectorAll(selector);
+      return elements[index] || null;
+    }
+
+    // Get content under a heading element
+    getContentUnderHeadingElement(headingElement) {
+      const content = [];
+      let currentElement = headingElement.nextElementSibling;
+
+      // Get next few content elements
+      for (let i = 0; i < 10 && currentElement; i++) {
+        if (currentElement.tagName === 'P') {
+          const text = currentElement.textContent?.trim();
+          if (text && text.length > 30) {
+            content.push(text);
+          }
+        } else if (currentElement.tagName === 'DIV' || currentElement.tagName === 'SECTION') {
+          // Check for paragraphs inside containers
+          const paragraphs = currentElement.querySelectorAll('p');
+          paragraphs.forEach(p => {
+            const text = p.textContent?.trim();
+            if (text && text.length > 30) {
+              content.push(text);
+            }
+          });
+        }
+
+        // Stop if we hit another heading
+        if (currentElement.tagName?.match(/^H[1-6]$/)) {
+          break;
+        }
+
+        currentElement = currentElement.nextElementSibling;
+      }
+
+      return content;
+    }
   }
 
   // Initialize content extractor and store globally
@@ -939,13 +1322,13 @@
       sendResponse({ status: 'ready' });
     } else if (request.action === 'extractContent') {
       try {
-        const content = extractor.getStructuredContent();
+        const content = extractor.extract(); // Use new clean extraction method
         sendResponse(content);
       } catch (error) {
         console.error('Content extraction failed:', error);
         sendResponse({
+          pageTitle: document.title || 'Untitled Page',
           url: window.location.href,
-          title: document.title || 'Untitled',
           error: error.message,
           timestamp: new Date().toISOString(),
           type: 'webpage'
@@ -956,7 +1339,7 @@
   });
 
   // Also make extraction function available globally for direct script execution
-  window.extractPageContent = () => extractor.getStructuredContent();
+  window.extractPageContent = () => extractor.extract(); // Use new clean extraction method
 
   // Auto-run extraction when script loads (for debugging)
   if (window.location.hostname === 'localhost') {

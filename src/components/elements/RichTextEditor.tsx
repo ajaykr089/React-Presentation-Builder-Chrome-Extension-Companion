@@ -104,6 +104,19 @@ export function RichTextEditor({ value, onChange, placeholder, readOnly = false 
       H6: 'Heading 6'
     },
     paragraphFormatSelection: true,
+    // Preserve line breaks and formatting
+    enter: 'BR', // Use <br> tags instead of <p> for line breaks
+    htmlUntouched: true, // Don't clean HTML on focus
+    htmlRemoveTags: [], // Don't remove any tags
+    htmlDoNotWrapTags: ['br'], // Don't wrap <br> tags
+    fullPage: false, // Don't treat as full HTML page
+    // Preserve whitespace and line breaks
+    preserveLineBreaks: true,
+    // Don't convert line breaks
+    lineBreakerTags: ['br'],
+    // Keep original HTML structure
+    htmlExecuteScripts: false,
+    // Events
     events: {
       'contentChanged': function() {
         // This will be handled by the onChange prop

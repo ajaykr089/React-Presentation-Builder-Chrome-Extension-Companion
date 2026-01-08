@@ -235,6 +235,7 @@ const SlideCanvas = memo(function SlideCanvas({
                 <img
                   src={element.content || '/placeholder-image.svg'}
                   alt="Slide image"
+                  draggable="false"
                   style={{
                     width: '100%',
                     height: '100%',

@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
       // Extension already provided structured slides - convert them to web app format
       processedData.slides = convertExtensionSlidesToWebAppSlides(data.slides)
     } else if (data.type === 'webpage') {
+      // Webpage content - convert to slides using basic algorithm
       processedData.slides = convertWebPageToSlides(data)
     } else if (data.type === 'youtube') {
       processedData.slides = convertYouTubeToSlides(data)
@@ -95,12 +96,12 @@ function convertWebPageToSlides(data: any) {
   // Title slide
   slides.push({
     id: `slide_title_${Date.now()}`,
-    title: 'Web Content',
+    title: data.pageTitle || 'Web Content',
     elements: [
       {
         id: `title_${Date.now()}`,
         type: 'text',
-        content: data.title || 'Untitled Page',
+        content: data.pageTitle || 'Untitled Page',
         x: 50,
         y: 200,
         width: 700,
@@ -129,22 +130,141 @@ function convertWebPageToSlides(data: any) {
     ]
   })
 
-  // Content slides from headings
-  if (data.headings && data.headings.length > 0) {
-    data.headings.forEach((heading: any, index: number) => {
-      if (index < 5) { // Limit to 5 content slides
+  // Create slides from sections (which have content grouped by headings)
+  if (data.sections && data.sections.length > 0) {
+    data.sections.forEach((section: any, index: number) => {
+      if (section.content && section.content.length > 0) {
+        const contentText = section.content.slice(0, 3).join('\n\n') // Take first 3 content items
+        const truncatedContent = contentText.length > 500 ? contentText.substring(0, 500) + '...' : contentText
+
+        const slideElements = []
+
+        // Add title
+        slideElements.push({
+          id: `section_title_${index}_${Date.now()}`,
+          type: 'text',
+          content: section.heading,
+          x: 50,
+          y: 80,
+          width: 700,
+          height: 50,
+          style: {
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: '#000000'
+          }
+        })
+
+        let currentY = 140
+
+        // Add image if available
+        if (section.images && section.images.length > 0) {
+          const image = section.images[0] // Use first image
+          slideElements.push({
+            id: `section_image_${index}_${Date.now()}`,
+            type: 'image',
+            content: image.src,
+            x: 50,
+            y: currentY,
+            width: 600,
+            height: 200,
+            style: {
+              objectFit: 'contain',
+              borderRadius: '8px'
+            }
+          })
+          currentY += 220 // Move content down after image
+        }
+
+        // Add full content without truncation
+        const fullContentText = section.content.join('\n\n')
+        slideElements.push({
+          id: `section_content_${index}_${Date.now()}`,
+          type: 'text',
+          content: fullContentText,
+          x: 50,
+          y: currentY,
+          width: 700,
+          height: 400, // Increased height for more content
+          style: {
+            fontSize: '16px',
+            lineHeight: '1.6',
+            color: '#333333'
+          }
+        })
+
         slides.push({
-          id: `slide_heading_${index}_${Date.now()}`,
-          title: heading.text,
+          id: `slide_section_${index}_${Date.now()}`,
+          title: section.heading,
+          elements: slideElements
+        })
+      }
+    })
+  }
+
+  // If no sections, fall back to using paragraphs
+  if (slides.length <= 1 && data.paragraphs && data.paragraphs.length > 0) {
+    const paragraphsPerSlide = 2
+    for (let i = 0; i < Math.min(data.paragraphs.length, 10); i += paragraphsPerSlide) {
+      const slideParagraphs = data.paragraphs.slice(i, i + paragraphsPerSlide)
+      const contentText = slideParagraphs.join('\n\n')
+      const truncatedContent = contentText.length > 600 ? contentText.substring(0, 600) + '...' : contentText
+
+      slides.push({
+        id: `slide_content_${i}_${Date.now()}`,
+        title: `Content Part ${Math.floor(i / paragraphsPerSlide) + 1}`,
+        elements: [
+          {
+            id: `content_title_${i}_${Date.now()}`,
+            type: 'text',
+            content: `Content Part ${Math.floor(i / paragraphsPerSlide) + 1}`,
+            x: 50,
+            y: 80,
+            width: 700,
+            height: 50,
+            style: {
+              fontSize: '28px',
+              fontWeight: 'bold',
+              color: '#000000'
+            }
+          },
+          {
+            id: `content_text_${i}_${Date.now()}`,
+            type: 'text',
+            content: truncatedContent,
+            x: 50,
+            y: 140,
+            width: 700,
+            height: 300,
+            style: {
+              fontSize: '16px',
+              lineHeight: '1.6',
+              color: '#333333'
+            }
+          }
+        ]
+      })
+    }
+  }
+
+  // Add list slides
+  if (data.lists && data.lists.length > 0) {
+    data.lists.slice(0, 3).forEach((list: any, index: number) => {
+      if (list.items && list.items.length > 0) {
+        const listContent = list.items.map((item: string) => `• ${item}`).join('\n')
+
+        slides.push({
+          id: `slide_list_${index}_${Date.now()}`,
+          title: `Key Points ${index + 1}`,
           elements: [
             {
-              id: `heading_${index}_${Date.now()}`,
+              id: `list_title_${index}_${Date.now()}`,
               type: 'text',
-              content: heading.text,
+              content: `Key Points ${index + 1}`,
               x: 50,
-              y: 100,
+              y: 80,
               width: 700,
-              height: 60,
+              height: 50,
               style: {
                 fontSize: '28px',
                 fontWeight: 'bold',
@@ -152,16 +272,16 @@ function convertWebPageToSlides(data: any) {
               }
             },
             {
-              id: `content_${index}_${Date.now()}`,
+              id: `list_content_${index}_${Date.now()}`,
               type: 'text',
-              content: 'Content from this section...',
+              content: listContent,
               x: 50,
-              y: 180,
+              y: 140,
               width: 700,
-              height: 200,
+              height: 300,
               style: {
                 fontSize: '16px',
-                lineHeight: '1.6',
+                lineHeight: '1.8',
                 color: '#333333'
               }
             }
@@ -171,7 +291,8 @@ function convertWebPageToSlides(data: any) {
     })
   }
 
-  return slides
+  // Limit total slides to reasonable number (15 max)
+  return slides.slice(0, 15)
 }
 
 function convertYouTubeToSlides(data: any) {

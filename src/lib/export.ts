@@ -35,16 +35,45 @@ export const exportToPPTX = async (slides: Slide[], theme: Theme): Promise<void>
         // Strip HTML tags from text content for PPTX export
         const cleanText = stripHtmlTags(element.content)
 
+        // Ensure proper alignment - default to left, never justify
+        const textAlign = element.style?.textAlign === 'justify' ? 'left' :
+                         element.style?.textAlign || 'left'
+
+        // Adjust positioning to reduce gaps
+        const xPos = element.x / 800 * 10
+        const yPos = element.y / 600 * 7.5
+        const width = element.width / 800 * 10
+        const height = element.height / 600 * 7.5
+
         pptxSlide.addText(cleanText, {
-          x: element.x / 800 * 10, // Convert to inches (assuming 800px canvas)
-          y: element.y / 600 * 7.5, // Convert to inches (assuming 600px canvas)
-          w: element.width / 800 * 10,
-          h: element.height / 600 * 7.5,
+          x: xPos,
+          y: yPos,
+          w: width,
+          h: height,
           fontSize: element.style?.fontSize ? parseInt(element.style.fontSize.toString()) * 0.75 : 18,
           color: element.style?.color || theme.colors.text,
           fontFace: element.style?.fontFamily || theme.fonts.body,
           bold: element.style?.fontWeight === 'bold',
-          align: element.style?.textAlign as any || 'left',
+          align: textAlign as any,
+          // Align text to top-left within the text box
+          valign: 'top',
+          // Add proper line spacing
+        })
+      } else if (element.type === 'image' && element.content) {
+        // Handle image elements
+        const xPos = element.x / 800 * 10
+        const yPos = element.y / 600 * 7.5
+        const width = element.width / 800 * 10
+        const height = element.height / 600 * 7.5
+
+        pptxSlide.addImage({
+          path: element.content,
+          x: xPos,
+          y: yPos,
+          w: width,
+          h: height,
+          // Optional: add styling
+          rounding: false, //element.style?.borderRadius ? true : false,
         })
       }
     })
