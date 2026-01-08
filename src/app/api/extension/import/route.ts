@@ -37,7 +37,7 @@ async function extractYouTubeTranscript(videoId: string): Promise<string | null>
           }
         }
       } catch (error) {
-        console.log(`Caption extraction failed for lang ${lang || 'auto'}:`, error.message);
+        console.log(`Caption extraction failed for lang ${lang || 'auto'}:`, error instanceof Error ? error.message : error);
       }
     }
 

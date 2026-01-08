@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // First, try to get transcript from backend
       try {
-        const transcriptResponse = await fetch('http://localhost:3000/api/extension/youtube-transcript', {
+        const transcriptResponse = await fetch('https://react-presentation-builder.vercel.app/api/extension/youtube-transcript', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
   async function sendToWebApp(data) {
     // Get web app URL from storage or use default
     const result = await chrome.storage.sync.get(['webAppUrl']);
-    const webAppUrl = result.webAppUrl || 'http://localhost:3000';
+    const webAppUrl = result.webAppUrl || 'https://react-presentation-builder.vercel.app';
 
     try {
       // Send data to web app via HTTP POST
@@ -568,6 +568,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function openWebApp() {
-    chrome.tabs.create({ url: 'http://localhost:3001' });
+    chrome.tabs.create({ url: 'https://react-presentation-builder.vercel.app' });
   }
 });

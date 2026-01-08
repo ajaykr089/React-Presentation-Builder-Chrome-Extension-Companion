@@ -16,7 +16,7 @@
     "https://www.youtube.com/*",
     "https://youtu.be/*",
     "http://localhost:3000/*",
-    "https://presentation-builder.vercel.app/*"
+    "https://react-presentation-builder.vercel.app/*"
   ],
   "background": {
     "service_worker": "background/background.js"
