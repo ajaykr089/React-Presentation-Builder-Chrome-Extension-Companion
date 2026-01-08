@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, memo } from 'react'
 import { Card, Typography } from 'antd'
 import { SlideElement, SlideTemplate, Theme } from '@/types/presentation'
 import { RichTextEditor } from '@/components/elements/RichTextEditor'
@@ -36,7 +36,7 @@ interface SlideCanvasProps {
 const CANVAS_WIDTH = 800
 const CANVAS_HEIGHT = 600
 
-export function SlideCanvas({
+const SlideCanvas = memo(function SlideCanvas({
   width = CANVAS_WIDTH,
   height = CANVAS_HEIGHT,
   backgroundColor = '#ffffff',
@@ -65,7 +65,7 @@ export function SlideCanvas({
         onElementSelect(undefined)
       }
     }
-  }, [selectedElement, displayElements, onElementSelect])
+  }, [selectedElement, onElementSelect])
 
   // Keyboard delete functionality
   useEffect(() => {
@@ -93,12 +93,8 @@ export function SlideCanvas({
 
   const handleElementClick = useCallback((elementId: string, event: React.MouseEvent) => {
     event.stopPropagation()
-    const element = displayElements.find(el => el.id === elementId)
-    if (element && onElementSelect) {
-      onElementSelect(element)
-    }
     setSelectedElement(elementId)
-  }, [displayElements, onElementSelect])
+  }, [])
 
   const handleCanvasClick = useCallback(() => {
     setSelectedElement(null)
@@ -434,4 +430,6 @@ export function SlideCanvas({
       </Card>
     </div>
   )
-}
+})
+
+export { SlideCanvas }

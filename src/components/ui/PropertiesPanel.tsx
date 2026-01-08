@@ -1,6 +1,7 @@
 'use client'
 
 import { Tabs, Drawer, Button } from 'antd'
+import { memo, useCallback } from 'react'
 import { SettingOutlined, CloseOutlined } from '@ant-design/icons'
 import { TemplateGallery } from '@/components/templates/TemplateGallery'
 import { ThemeSelector } from '@/components/themes/ThemeSelector'
@@ -24,10 +25,12 @@ interface PropertiesPanelProps {
   onSlideBackgroundUpdate?: (color: string) => void
   currentSlideTransition?: any
   currentSlideBackground?: string
+  activeTab?: string
+  onTabChange?: (tab: string) => void
   width?: number
 }
 
-export function PropertiesPanel({
+const PropertiesPanel = memo(function PropertiesPanel({
   visible,
   onClose,
   onTemplateSelect,
@@ -42,8 +45,11 @@ export function PropertiesPanel({
   onSlideBackgroundUpdate,
   currentSlideTransition,
   currentSlideBackground,
+  activeTab = 'templates',
+  onTabChange,
   width = 400
 }: PropertiesPanelProps) {
+  console.log("PropertiesPanel rendered with activeTab:", activeTab, selectedElement);
   return (
     <Drawer
       title={
@@ -67,9 +73,21 @@ export function PropertiesPanel({
       }}
       mask={false}
       getContainer={false}
+      onClick={(e) => {
+        // Prevent clicks on the drawer from bubbling up and potentially clearing element selection
+        e.stopPropagation()
+      }}
     >
       <Tabs
-        defaultActiveKey="templates"
+        activeKey={activeTab}
+        onChange={(key) => {
+          console.log('Tab changed to:', key);
+          onTabChange?.(key)
+        }}
+        onTabClick={(key, e) => {
+          // Prevent event propagation to avoid clearing element selection
+          e.stopPropagation()
+        }}
         size="small"
         items={[
           {
@@ -228,4 +246,6 @@ export function PropertiesPanel({
       />
     </Drawer>
   )
-}
+})
+
+export { PropertiesPanel }

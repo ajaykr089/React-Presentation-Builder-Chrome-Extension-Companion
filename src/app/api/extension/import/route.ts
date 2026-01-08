@@ -27,7 +27,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Convert different content types to presentation elements
-    if (data.type === 'webpage') {
+    if (data.slides && Array.isArray(data.slides)) {
+      // Extension already provided structured slides - convert them to web app format
+      processedData.slides = convertExtensionSlidesToWebAppSlides(data.slides)
+    } else if (data.type === 'webpage') {
       processedData.slides = convertWebPageToSlides(data)
     } else if (data.type === 'youtube') {
       processedData.slides = convertYouTubeToSlides(data)
@@ -360,4 +363,455 @@ function splitTextIntoChunks(text: string, chunkSize: number): string[] {
   }
 
   return chunks
+}
+
+// Convert extension slides to web app slide format
+function convertExtensionSlidesToWebAppSlides(extensionSlides: any[]): any[] {
+  return extensionSlides.map((slide, index) => {
+    const slideId = slide.id || `slide_${index}_${Date.now()}`
+    const elements: SlideElement[] = []
+    let yOffset = 80 // Starting Y position for content
+
+    // Handle different slide types
+    switch (slide.type) {
+      case 'title':
+        // Title slide with rich metadata
+        if (slide.content?.title) {
+          elements.push({
+            id: `title_${Date.now()}`,
+            type: 'text',
+            content: slide.content.title,
+            x: 50,
+            y: 150,
+            width: 700,
+            height: 60,
+            style: {
+              fontSize: '36px',
+              fontWeight: 'bold',
+              textAlign: 'center',
+              color: '#000000'
+            }
+          })
+          yOffset = 230
+        }
+
+        if (slide.content?.subtitle) {
+          elements.push({
+            id: `subtitle_${Date.now()}`,
+            type: 'text',
+            content: slide.content.subtitle,
+            x: 50,
+            y: yOffset,
+            width: 700,
+            height: 40,
+            style: {
+              fontSize: '18px',
+              textAlign: 'center',
+              color: '#666666'
+            }
+          })
+          yOffset += 60
+        }
+
+        // Add metadata if available
+        const metadata = []
+        if (slide.content?.author) metadata.push(`Author: ${slide.content.author}`)
+        if (slide.content?.publishedDate) {
+          const date = new Date(slide.content.publishedDate).toLocaleDateString()
+          metadata.push(`Published: ${date}`)
+        }
+        if (slide.content?.readingTime) metadata.push(`${slide.content.readingTime}`)
+
+        if (metadata.length > 0) {
+          elements.push({
+            id: `metadata_${Date.now()}`,
+            type: 'text',
+            content: metadata.join(' • '),
+            x: 50,
+            y: yOffset,
+            width: 700,
+            height: 30,
+            style: {
+              fontSize: '14px',
+              textAlign: 'center',
+              color: '#999999'
+            }
+          })
+        }
+        break
+
+      case 'content':
+      case 'section':
+        // Text content slides
+        elements.push({
+          id: `content_title_${Date.now()}`,
+          type: 'text',
+          content: slide.title,
+          x: 50,
+          y: 80,
+          width: 700,
+          height: 50,
+          style: {
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: '#000000'
+          }
+        })
+
+        if (slide.content && typeof slide.content === 'string') {
+          elements.push({
+            id: `content_text_${Date.now()}`,
+            type: 'text',
+            content: slide.content,
+            x: 50,
+            y: 140,
+            width: 700,
+            height: 300,
+            style: {
+              fontSize: '16px',
+              lineHeight: '1.6',
+              color: '#333333'
+            }
+          })
+        }
+        break
+
+      case 'list':
+        // List slides
+        elements.push({
+          id: `list_title_${Date.now()}`,
+          type: 'text',
+          content: slide.title,
+          x: 50,
+          y: 80,
+          width: 700,
+          height: 50,
+          style: {
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: '#000000'
+          }
+        })
+
+        if (slide.content?.items && Array.isArray(slide.content.items)) {
+          const listContent = slide.content.items.map((item: string, idx: number) =>
+            `• ${item}`
+          ).join('\n')
+
+          elements.push({
+            id: `list_content_${Date.now()}`,
+            type: 'text',
+            content: listContent,
+            x: 50,
+            y: 140,
+            width: 700,
+            height: 300,
+            style: {
+              fontSize: '16px',
+              lineHeight: '1.8',
+              color: '#333333'
+            }
+          })
+        }
+        break
+
+      case 'image':
+        // Image slides with proper image elements
+        elements.push({
+          id: `image_title_${Date.now()}`,
+          type: 'text',
+          content: slide.title,
+          x: 50,
+          y: 50,
+          width: 700,
+          height: 60,
+          style: {
+            fontSize: '32px',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            color: '#000000'
+          }
+        })
+
+        if (slide.content?.src) {
+          // Add proper image element
+          elements.push({
+            id: `image_${Date.now()}`,
+            type: 'image',
+            content: slide.content.src,
+            x: 100,
+            y: 120,
+            width: 600,
+            height: 300,
+            style: {
+              objectFit: 'contain',
+              borderRadius: '8px'
+            }
+          })
+
+          // Add caption if available
+          if (slide.content.caption) {
+            elements.push({
+              id: `image_caption_${Date.now()}`,
+              type: 'text',
+              content: slide.content.caption,
+              x: 50,
+              y: 440,
+              width: 700,
+              height: 60,
+              style: {
+                fontSize: '16px',
+                textAlign: 'center',
+                color: '#666666',
+                fontStyle: 'italic'
+              }
+            })
+          }
+        }
+        break
+
+      case 'table':
+        // Table slides
+        elements.push({
+          id: `table_title_${Date.now()}`,
+          type: 'text',
+          content: slide.title,
+          x: 50,
+          y: 80,
+          width: 700,
+          height: 50,
+          style: {
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: '#000000'
+          }
+        })
+
+        if (slide.content?.headers && slide.content?.rows) {
+          // Convert table to text representation
+          let tableText = slide.content.headers.join(' | ') + '\n'
+          tableText += '-'.repeat(slide.content.headers.length * 10) + '\n'
+
+          slide.content.rows.slice(0, 8).forEach((row: string[]) => {
+            tableText += row.join(' | ') + '\n'
+          })
+
+          elements.push({
+            id: `table_content_${Date.now()}`,
+            type: 'text',
+            content: tableText,
+            x: 50,
+            y: 140,
+            width: 700,
+            height: 300,
+            style: {
+              fontSize: '14px',
+              fontFamily: 'monospace',
+              lineHeight: '1.4',
+              color: '#333333'
+            }
+          })
+        }
+        break
+
+      case 'code':
+        // Code slides
+        elements.push({
+          id: `code_title_${Date.now()}`,
+          type: 'text',
+          content: slide.title,
+          x: 50,
+          y: 80,
+          width: 700,
+          height: 50,
+          style: {
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: '#000000'
+          }
+        })
+
+        if (slide.content?.code) {
+          const language = slide.content.language || 'text'
+          const codeWithLabel = `[${language}]\n${slide.content.code}`
+
+          elements.push({
+            id: `code_content_${Date.now()}`,
+            type: 'text',
+            content: codeWithLabel,
+            x: 50,
+            y: 140,
+            width: 700,
+            height: 300,
+            style: {
+              fontSize: '14px',
+              fontFamily: 'monospace',
+              backgroundColor: '#f5f5f5',
+              padding: '10px',
+              color: '#333333'
+            }
+          })
+        }
+        break
+
+      case 'links':
+        // Links slides
+        elements.push({
+          id: `links_title_${Date.now()}`,
+          type: 'text',
+          content: slide.title,
+          x: 50,
+          y: 80,
+          width: 700,
+          height: 50,
+          style: {
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: '#000000'
+          }
+        })
+
+        if (slide.content && Array.isArray(slide.content)) {
+          const linksText = slide.content.map((link: any, idx: number) =>
+            `${idx + 1}. ${link.text}\n   ${link.url}`
+          ).join('\n\n')
+
+          elements.push({
+            id: `links_content_${Date.now()}`,
+            type: 'text',
+            content: linksText,
+            x: 50,
+            y: 140,
+            width: 700,
+            height: 300,
+            style: {
+              fontSize: '16px',
+              lineHeight: '1.6',
+              color: '#1890ff'
+            }
+          })
+        }
+        break
+
+      case 'insights':
+        // Insights slides
+        elements.push({
+          id: `insights_title_${Date.now()}`,
+          type: 'text',
+          content: slide.title,
+          x: 50,
+          y: 80,
+          width: 700,
+          height: 50,
+          style: {
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: '#000000'
+          }
+        })
+
+        if (slide.content && Array.isArray(slide.content)) {
+          const insightsText = slide.content.map((insight: string, idx: number) =>
+            `${idx + 1}. ${insight}`
+          ).join('\n\n')
+
+          elements.push({
+            id: `insights_content_${Date.now()}`,
+            type: 'text',
+            content: insightsText,
+            x: 50,
+            y: 140,
+            width: 700,
+            height: 300,
+            style: {
+              fontSize: '16px',
+              lineHeight: '1.6',
+              color: '#333333'
+            }
+          })
+        }
+        break
+
+      case 'quotes':
+        // Quotes slides
+        elements.push({
+          id: `quotes_title_${Date.now()}`,
+          type: 'text',
+          content: slide.title,
+          x: 50,
+          y: 80,
+          width: 700,
+          height: 50,
+          style: {
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: '#000000'
+          }
+        })
+
+        if (slide.content && Array.isArray(slide.content)) {
+          const quotesText = slide.content.map((quote: any) =>
+            `"${quote.text}"${quote.author ? `\n— ${quote.author}` : ''}`
+          ).join('\n\n\n')
+
+          elements.push({
+            id: `quotes_content_${Date.now()}`,
+            type: 'text',
+            content: quotesText,
+            x: 50,
+            y: 140,
+            width: 700,
+            height: 300,
+            style: {
+              fontSize: '18px',
+              lineHeight: '1.6',
+              color: '#333333',
+              fontStyle: 'italic'
+            }
+          })
+        }
+        break
+
+      default:
+        // Fallback for unknown slide types
+        elements.push({
+          id: `fallback_title_${Date.now()}`,
+          type: 'text',
+          content: slide.title || 'Content',
+          x: 50,
+          y: 80,
+          width: 700,
+          height: 50,
+          style: {
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: '#000000'
+          }
+        })
+
+        if (slide.content && typeof slide.content === 'string') {
+          elements.push({
+            id: `fallback_content_${Date.now()}`,
+            type: 'text',
+            content: slide.content,
+            x: 50,
+            y: 140,
+            width: 700,
+            height: 300,
+            style: {
+              fontSize: '16px',
+              lineHeight: '1.6',
+              color: '#333333'
+            }
+          })
+        }
+    }
+
+    return {
+      id: slideId,
+      title: slide.title || `Slide ${index + 1}`,
+      elements: elements,
+      backgroundColor: '#ffffff'
+    }
+  })
 }

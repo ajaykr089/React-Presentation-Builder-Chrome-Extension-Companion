@@ -27,28 +27,32 @@ document.addEventListener('DOMContentLoaded', function() {
       // Get current tab
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-      if (!tab.url) {
+      if (!tab || !tab.id) {
         throw new Error('No active tab found');
       }
 
-      // Execute content script to extract page content
-      const results = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: ['/content/content.js']
+      // Send message to content script to extract content
+      const response = await new Promise((resolve, reject) => {
+        chrome.tabs.sendMessage(tab.id, { action: 'extractContent' }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error('Content script not available. Please refresh the page.'));
+            return;
+          }
+
+          if (response) {
+            resolve(response);
+          } else {
+            reject(new Error('No response from content script'));
+          }
+        });
       });
 
-      if (results && results[0] && results[0].result) {
-        const pageData = results[0].result;
+      // Send data to web app
+      await sendToWebApp(response);
 
-        // Send data to web app
-        await sendToWebApp(pageData);
-
-        showSuccess('Page content extracted successfully!');
-        if (autoOpenCheckbox.checked) {
-          openWebApp();
-        }
-      } else {
-        throw new Error('Failed to extract page content');
+      showSuccess('Page content extracted successfully!');
+      if (autoOpenCheckbox.checked) {
+        openWebApp();
       }
 
     } catch (error) {
@@ -107,22 +111,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-      const results = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: ['/content/content.js']
+      if (!tab || !tab.id) {
+        throw new Error('No active tab found');
+      }
+
+      // Send message to content script to extract content
+      const pageData = await new Promise((resolve, reject) => {
+        chrome.tabs.sendMessage(tab.id, { action: 'extractContent' }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error('Content script not available. Please refresh the page.'));
+            return;
+          }
+
+          if (response) {
+            resolve(response);
+          } else {
+            reject(new Error('No response from content script'));
+          }
+        });
       });
 
-      if (results && results[0] && results[0].result) {
-        const pageData = results[0].result;
+      // Send to AI summarization service (placeholder for Phase 5)
+      const summarizedData = await summarizeContent(pageData);
 
-        // Send to AI summarization service (placeholder for Phase 5)
-        const summarizedData = await summarizeContent(pageData);
-
-        await sendToWebApp(summarizedData);
-        showSuccess('Content summarized and slides created!');
-        if (autoOpenCheckbox.checked) {
-          openWebApp();
-        }
+      await sendToWebApp(summarizedData);
+      showSuccess('Content summarized and slides created!');
+      if (autoOpenCheckbox.checked) {
+        openWebApp();
       }
 
     } catch (error) {

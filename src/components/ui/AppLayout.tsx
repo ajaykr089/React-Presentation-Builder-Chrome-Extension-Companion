@@ -8,7 +8,9 @@ import {
   SettingOutlined,
   PlusOutlined,
   LeftOutlined,
-  RightOutlined
+  RightOutlined,
+  FolderOpenOutlined,
+  DeleteOutlined
 } from '@ant-design/icons'
 import { useState } from 'react'
 
@@ -22,8 +24,10 @@ interface AppLayoutProps {
   onExport?: () => void
   onSettings?: () => void
   onAddSlide?: () => void
+  onDeleteSlide?: () => void
   onNextSlide?: () => void
   onPrevSlide?: () => void
+  onPresentationManager?: () => void
   currentSlideIndex?: number
   totalSlides?: number
 }
@@ -36,8 +40,10 @@ export function AppLayout({
   onExport,
   onSettings,
   onAddSlide,
+  onDeleteSlide,
   onNextSlide,
   onPrevSlide,
+  onPresentationManager,
   currentSlideIndex = 0,
   totalSlides = 1
 }: AppLayoutProps) {
@@ -47,6 +53,9 @@ export function AppLayout({
     switch (key) {
       case 'new':
         onNewPresentation?.()
+        break
+      case 'presentations':
+        onPresentationManager?.()
         break
       case 'preview':
         onPreview?.()
@@ -65,6 +74,11 @@ export function AppLayout({
       key: 'new',
       icon: <PlusOutlined />,
       label: 'New Presentation',
+    },
+    {
+      key: 'presentations',
+      icon: <FolderOpenOutlined />,
+      label: 'My Presentations',
     },
     {
       key: 'slides',
@@ -105,16 +119,14 @@ export function AppLayout({
             Slide {currentSlideIndex + 1} of {totalSlides}
           </span>
           <Button
-            icon={<LeftOutlined />}
+            icon={<LeftOutlined style={{ color: currentSlideIndex === 0?'white': 'black' }} />}
             onClick={onPrevSlide}
             disabled={currentSlideIndex === 0}
-            style={{ color: 'white' }}
           />
           <Button
-            icon={<RightOutlined />}
+            icon={<RightOutlined style={{ color: currentSlideIndex === totalSlides - 1?'white': 'black' }} />}
             onClick={onNextSlide}
             disabled={currentSlideIndex === totalSlides - 1}
-            style={{ color: 'white' }}
           />
           <Button
             type="primary"
@@ -122,6 +134,15 @@ export function AppLayout({
             onClick={onAddSlide}
           >
             New Slide
+          </Button>
+          <Button
+            danger
+            icon={<DeleteOutlined />}
+            onClick={onDeleteSlide}
+            disabled={totalSlides <= 1}
+            style={totalSlides <= 1 ? { opacity: 0.6, color: 'rgba(255, 255, 255, 0.6)' } : undefined}
+          >
+            Delete Slide
           </Button>
           <Button
             icon={<PlayCircleOutlined />}

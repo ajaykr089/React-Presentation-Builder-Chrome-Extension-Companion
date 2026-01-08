@@ -1,0 +1,24 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="128" height="128" rx="16" fill="#1890ff"/>
+  
+  <!-- Slide representation -->
+  <rect x="16" y="24" width="96" height="80" rx="4" fill="white" stroke="#1890ff" stroke-width="2"/>
+  
+  <!-- Title bar -->
+  <rect x="16" y="24" width="96" height="20" rx="4" fill="#f0f8ff"/>
+  <rect x="20" y="28" width="40" height="4" rx="2" fill="#1890ff"/>
+  <rect x="20" y="36" width="60" height="4" rx="2" fill="#d9d9d9"/>
+  
+  <!-- Content area -->
+  <rect x="20" y="52" width="30" height="4" rx="2" fill="#666"/>
+  <rect x="20" y="60" width="80" height="4" rx="2" fill="#666"/>
+  <rect x="20" y="68" width="70" height="4" rx="2" fill="#666"/>
+  <rect x="20" y="76" width="50" height="4" rx="2" fill="#666"/>
+  
+  <!-- Bullet points -->
+  <circle cx="26" cy="58" r="2" fill="#1890ff"/>
+  <circle cx="26" cy="66" r="2" fill="#1890ff"/>
+  <circle cx="26" cy="74" r="2" fill="#1890ff"/>
+  <circle cx="26" cy="82" r="2" fill="#1890ff"/>
+</svg>

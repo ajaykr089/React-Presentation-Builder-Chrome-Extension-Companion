@@ -1,0 +1,130 @@
+/* Content Script Styles for Presentation Builder Chrome Extension */
+
+/* Highlight elements that can be extracted */
+.presentation-builder-highlight {
+  outline: 2px solid #1890ff !important;
+  outline-offset: 2px !important;
+  background-color: rgba(24, 144, 255, 0.1) !important;
+  cursor: pointer !important;
+}
+
+/* Hide the extension UI when not needed */
+.presentation-builder-hidden {
+  display: none !important;
+}
+
+/* Overlay for content extraction */
+.presentation-builder-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.presentation-builder-modal {
+  background: white !important;
+  padding: 20px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  max-width: 400px !important;
+  width: 90% !important;
+  max-height: 80vh !important;
+  overflow-y: auto !important;
+}
+
+.presentation-builder-modal h3 {
+  margin: 0 0 16px 0 !important;
+  color: #1890ff !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+}
+
+.presentation-builder-modal p {
+  margin: 0 0 16px 0 !important;
+  color: #666 !important;
+  line-height: 1.5 !important;
+}
+
+.presentation-builder-buttons {
+  display: flex !important;
+  gap: 8px !important;
+  justify-content: flex-end !important;
+}
+
+.presentation-builder-btn {
+  padding: 8px 16px !important;
+  border: 1px solid #d9d9d9 !important;
+  border-radius: 4px !important;
+  background: white !important;
+  color: #666 !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  transition: all 0.2s !important;
+}
+
+.presentation-builder-btn:hover {
+  border-color: #1890ff !important;
+  color: #1890ff !important;
+}
+
+.presentation-builder-btn.primary {
+  background: #1890ff !important;
+  border-color: #1890ff !important;
+  color: white !important;
+}
+
+.presentation-builder-btn.primary:hover {
+  background: #40a9ff !important;
+  border-color: #40a9ff !important;
+}
+
+/* Loading indicator */
+.presentation-builder-loading {
+  display: inline-block !important;
+  width: 16px !important;
+  height: 16px !important;
+  border: 2px solid #f3f3f3 !important;
+  border-top: 2px solid #1890ff !important;
+  border-radius: 50% !important;
+  animation: presentation-builder-spin 1s linear infinite !important;
+  margin-right: 8px !important;
+}
+
+@keyframes presentation-builder-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Success message */
+.presentation-builder-success {
+  color: #52c41a !important;
+  font-weight: 500 !important;
+}
+
+/* Error message */
+.presentation-builder-error {
+  color: #ff4d4f !important;
+  font-weight: 500 !important;
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .presentation-builder-modal {
+    margin: 20px !important;
+    width: calc(100% - 40px) !important;
+  }
+
+  .presentation-builder-buttons {
+    flex-direction: column !important;
+  }
+
+  .presentation-builder-btn {
+    width: 100% !important;
+  }
+}

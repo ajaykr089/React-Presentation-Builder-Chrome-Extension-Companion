@@ -103,7 +103,7 @@ export function ElementProperties({ selectedElement, onElementUpdate, onElementD
 
       {/* Common Properties - Position & Size */}
       <Card size="small" title="Position & Size" style={{ marginBottom: '16px' }}>
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
           <div>
             <Text strong>X Position:</Text>
             <Slider

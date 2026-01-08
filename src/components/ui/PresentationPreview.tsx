@@ -239,7 +239,7 @@ export function PresentationPreview({ slides, theme, onClose }: PresentationPrev
           percent={(currentSlideIndex + 1) / slides.length * 100}
           showInfo={false}
           strokeColor="#1890ff"
-          trailColor="transparent"
+          railColor="transparent"
           style={{ margin: 0 }}
         />
       </div>

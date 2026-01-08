@@ -47,6 +47,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     default:
       sendResponse({ error: 'Unknown action' });
   }
+
+  // Handle any runtime errors
+  if (chrome.runtime.lastError) {
+    console.error('Runtime error:', chrome.runtime.lastError);
+    sendResponse({ error: chrome.runtime.lastError.message });
+  }
 });
 
 // Handle tab updates to show page action
@@ -86,50 +92,35 @@ function updatePageAction(tab) {
 }
 
 // Handle content extraction from tab
-async function handleContentExtraction(tab, sendResponse) {
-  try {
-    if (!tab || !tab.id) {
-      throw new Error('No active tab found');
+function handleContentExtraction(tab, sendResponse) {
+  if (!tab || !tab.id) {
+    sendResponse({ success: false, error: 'No active tab found' });
+    return;
+  }
+
+  // Check if content script is available by sending a ping first
+  chrome.tabs.sendMessage(tab.id, { action: 'ping' }, (pingResponse) => {
+    if (chrome.runtime.lastError) {
+      console.error('Content script not available:', chrome.runtime.lastError);
+      sendResponse({ success: false, error: 'Content script not loaded. Please refresh the page.' });
+      return;
     }
 
-    // Execute content script to extract data
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: () => {
-        // This function runs in the page context
-        const extractor = {
-          getTitle: () => document.title,
-          getHeadings: () => Array.from(document.querySelectorAll('h1, h2, h3')).map(h => ({
-            level: parseInt(h.tagName.charAt(1)),
-            text: h.textContent.trim()
-          })),
-          getTextContent: () => {
-            const elements = document.querySelectorAll('p, h1, h2, h3, h4, h5, h6');
-            return Array.from(elements).map(el => el.textContent.trim()).filter(text => text.length > 20);
-          }
-        };
+    // Content script is available, now extract content
+    chrome.tabs.sendMessage(tab.id, { action: 'extractContent' }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('Content extraction error:', chrome.runtime.lastError);
+        sendResponse({ success: false, error: 'Content extraction failed: ' + chrome.runtime.lastError.message });
+        return;
+      }
 
-        return {
-          url: window.location.href,
-          title: extractor.getTitle(),
-          headings: extractor.getHeadings(),
-          textContent: extractor.getTextContent(),
-          timestamp: new Date().toISOString(),
-          type: 'webpage'
-        };
+      if (response) {
+        sendResponse({ success: true, data: response });
+      } else {
+        sendResponse({ success: false, error: 'No response from content script' });
       }
     });
-
-    if (results && results[0] && results[0].result) {
-      sendResponse({ success: true, data: results[0].result });
-    } else {
-      throw new Error('Content extraction failed');
-    }
-
-  } catch (error) {
-    console.error('Content extraction error:', error);
-    sendResponse({ success: false, error: error.message });
-  }
+  });
 }
 
 // Handle sending data to web app
@@ -226,11 +217,4 @@ function handleGetSettings(sendResponse) {
   });
 }
 
-// Error handling
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // Handle any unhandled messages
-  if (chrome.runtime.lastError) {
-    console.error('Runtime error:', chrome.runtime.lastError);
-    sendResponse({ error: chrome.runtime.lastError.message });
-  }
-});
+// All message handling is done above in the main listener
