@@ -148,12 +148,14 @@ const SlideCanvas = memo(function SlideCanvas({
   }, [])
 
   return (
-    <div style={{ padding: '24px', backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
-      <Card
+    <div style={{ backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+      <div
         style={{
-          width: width + 48,
-          margin: '0 auto',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+          width: width,
+          margin: '45px auto',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          borderRadius: '8px',
+          overflow: 'hidden'
         }}
       >
         <div
@@ -428,7 +430,7 @@ const SlideCanvas = memo(function SlideCanvas({
             </div>
           )})}
         </div>
-      </Card>
+      </div>
     </div>
   )
 })

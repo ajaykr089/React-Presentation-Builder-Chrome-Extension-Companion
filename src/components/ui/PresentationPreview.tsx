@@ -254,9 +254,9 @@ export function PresentationPreview({ slides, theme, onClose }: PresentationPrev
       }}>
         <div style={{
           width: '100%',
-          maxWidth: '1200px',
+          maxWidth: '848px', // 800 + 48 for the outer padding
           height: '100%',
-          maxHeight: '675px', // 16:9 aspect ratio
+          maxHeight: '648px', // 600 + 48 for the outer padding
           backgroundColor: 'white',
           borderRadius: '8px',
           overflow: 'hidden',
@@ -264,8 +264,8 @@ export function PresentationPreview({ slides, theme, onClose }: PresentationPrev
         }}
         className={getTransitionClass()}>
           <SlideCanvas
-            width={1200}
-            height={675}
+            width={800}
+            height={600}
             backgroundColor={currentSlide.backgroundColor || '#ffffff'}
             theme={theme}
             elements={currentSlide.elements}
